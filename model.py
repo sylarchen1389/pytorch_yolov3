@@ -54,7 +54,7 @@ def create_model(blocks):
     for index, block  in enumerate(blocks[1:]):
         module = nn.Sequential()
         # convolution layer
-        print(block)
+        print(index,":",block)
         if(block["type"] == "convolutional"):
             activation = block["activation"]
             try:
@@ -80,20 +80,20 @@ def create_model(blocks):
             if batch_normalize:
                 bn = nn.BatchNorm2d(filters)
                 module.add_module("batch_norm_{0}".format(index),bn)
-
             if activation == "leaky":
                 activn = nn.LeakyReLU(0.1,inplace= True)
                 module.add_module("leaky_{0}".format(index),activn)
+            if activation == "ReLU":
+                module.add_module("ReLU_{}".format(index), nn.ReLU())
 
         # upsample layer  
-        elif(block["type"] == "'upsample"):
-            stride = int(block["stride"])
-            upsample = nn.Upsample(scale_factor=2,mode = "bilinear ")
+        elif(block["type"] == "upsample"):
+            upsample = nn.Upsample(scale_factor=int(block["stride"]),mode = "nearest")
             module.add_module("upsample_{0}".format(index),upsample)
         
         # route layer
         elif(block["type"] == "route"):
-            block["layers"] = block["layers"].split(',')
+            block["layers"] =[ int(a) for a in block["layers"].split(',')]
             start = int(block["layers"][0])
             try:
                 end = int(block["layers"][1])
@@ -102,11 +102,10 @@ def create_model(blocks):
             
             # positive anotation
             if start > 0:
-                start = start - index 
+                start = start - index
             if end >0: 
                 end = end - index
-            route = EmptyLayer()
-            module.add_module("route_{0}".format(index),route)
+            
 
             if end<0:
                 filters = output_filters[index + start] + output_filters[index+end]
@@ -162,14 +161,14 @@ class Darknet(nn.Module):
                     layers[0] = layers[0] - i
                 
                 if(len(layers)==1):
-                    x = outputs[i+layers[0]]
+                    x = outputs[i+(layers[0])]
                 else:
                     if(layers[1]>0):
                         layers[1] = layers[1] - i
 
-                    map1 = outputs[i+layers[0]]
-                    map2 = outputs[i+layers[1]] 
-                    x = torch.cat((map1,map2),1)
+                    map1 = outputs[i+(layers[0])]
+                    map2 = outputs[i+(layers[1])] 
+                    x = torch.cat([map1,map2],1)
             
             elif module_type == "shortcut":
                 from_ = int(module["from"])
@@ -190,7 +189,6 @@ class Darknet(nn.Module):
                     write  =1 
                 else:
                     detections = torch.cat((detections,x),1)
-            
             outputs[i] = x 
         return detections
 
@@ -209,5 +207,5 @@ if __name__ == "__main__":
     model = Darknet("cfg/yolov3.cfg")
     inp = get_test_input()
     pred = model(inp,torch.cuda.is_available())
-    print(pred)    
-        
+    print(pred.shape)    
+    

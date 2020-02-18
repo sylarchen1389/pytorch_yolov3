@@ -46,6 +46,7 @@ def predict_transform(prediction , inp_w , inp_h , anchors , num_classes, CUDA =
     anchors = torch.FloatTensor(anchors)
     if CUDA:
         anchors = anchors.cuda()
+        prediction = prediction.cuda()
     
     # add dim 
     # (1,grid_size*grid_size*num_anchors,2) 
