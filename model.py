@@ -266,8 +266,9 @@ if __name__ == "__main__":
     #print(create_model(blocks))
     model = Darknet("cfg/yolov3.cfg")
     print("loading weights...")
-    model.load_weights("yolov3.weights")
+    #model.load_weights("yolov3.weights")
     inp = get_test_input()
     pred = model(inp,torch.cuda.is_available())
-    print(pred.shape)    
+    outputs = write_results(pred,0.5,80)
+    print(outputs.shape)    
     
